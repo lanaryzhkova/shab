@@ -1,0 +1,101 @@
+@page "/conference/presentations"
+@rendermode InteractiveServer
+@using RESTful.Domain.DTOs
+@using RESTful.Domain.Entities
+@inject Frontend.Services.ConferenceService ConferenceService
+
+<PageTitle>Доклады конференции</PageTitle>
+
+<h2>Доклады конференции</h2>
+
+<div class="mb-3">
+    <a href="/conference/register" class="btn btn-primary">Зарегистрироваться с докладом</a>
+    <a href="/conference/participants" class="btn btn-secondary">К участникам</a>
+    <a href="/moderation" class="btn btn-warning">Модерация</a>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+   <span class="visually-hidden">Загрузка...</span>
+   </div>
+    </div>
+}
+else if (!presentations.Any())
+{
+<div class="alert alert-info" role="alert">
+   Пока нет одобренных докладов.
+    </div>
+}
+else
+{
+ <div class="alert alert-info mb-3" role="alert">
+  <i class="bi bi-info-circle"></i> Показываются только одобренные доклады
+    </div>
+
+    <div class="row">
+ @foreach (var presentation in presentations)
+  {
+  <div class="col-md-6 mb-4">
+<div class="card h-100">
+<div class="card-body">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+         <h5 class="card-title">@presentation.Title</h5>
+      <span class="badge bg-success">@presentation.StatusText</span>
+  </div>
+  
+            @if (!string.IsNullOrEmpty(presentation.Abstract))
+ {
+      <p class="card-text">@presentation.Abstract</p>
+}
+
+      <hr>
+       
+       <p class="mb-1"><strong>Докладчик:</strong> @presentation.MainSpeakerName</p>
+
+ @if (presentation.CoSpeakers?.Any() == true)
+   {
+  <p class="mb-1">
+     <strong>Содокладчики:</strong>
+ @string.Join(", ", presentation.CoSpeakers.Select(cs => cs.ParticipantName))
+  </p>
+        }
+
+      <p class="text-muted mb-0">
+      <small>Создан: @presentation.CreatedDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
+   </p>
+         
+ @if (presentation.ModerationDate.HasValue)
+            {
+   <p class="text-muted mb-0">
+            <small>Одобрен: @presentation.ModerationDate.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
+    </p>
+     }
+   </div>
+  </div>
+   </div>
+  }
+    </div>
+
+    <div class="mt-3">
+   <p class="text-muted">Одобренных докладов: @presentations.Count</p>
+    </div>
+}
+
+@code {
+  private List<PresentationResponseDto> presentations = new();
+ private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+ {
+  await LoadPresentations();
+    }
+
+    private async Task LoadPresentations()
+    {
+     isLoading = true;
+    presentations = await ConferenceService.GetApprovedPresentationsAsync();
+  isLoading = false;
+    }
+}

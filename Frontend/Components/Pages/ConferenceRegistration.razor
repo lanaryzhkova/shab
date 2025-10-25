@@ -1,0 +1,252 @@
+@page "/conference/register"
+@rendermode InteractiveServer
+@using RESTful.Domain.DTOs
+@using RESTful.Domain.Entities
+@inject Frontend.Services.ConferenceService ConferenceService
+@inject NavigationManager Navigation
+
+<PageTitle>Регистрация на конференцию</PageTitle>
+
+<h2>Регистрация на конференцию</h2>
+
+@if (isSuccess)
+{
+ <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading">Регистрация успешна!</h4>
+        <p>Вы успешно зарегистрированы на конференцию.</p>
+     <hr>
+        <p class="mb-0">
+ <a href="/conference/participants/@participantId" class="btn btn-primary">Просмотреть профиль</a>
+      <a href="/conference/participants" class="btn btn-secondary">К списку участников</a>
+    </p>
+    </div>
+}
+else
+{
+    <EditForm Model="@registrationDto" OnValidSubmit="HandleRegistration" FormName="conferenceRegistration">
+ <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+        {
+         <div class="alert alert-danger" role="alert">
+                @errorMessage
+    </div>
+        }
+
+  <div class="row">
+            <div class="col-md-6">
+                <h4>Личная информация</h4>
+     
+<div class="mb-3">
+            <label class="form-label">Фамилия *</label>
+             <InputText @bind-Value="registrationDto.LastName" class="form-control" />
+          <ValidationMessage For="@(() => registrationDto.LastName)" />
+      </div>
+
+            <div class="mb-3">
+ <label class="form-label">Имя *</label>
+         <InputText @bind-Value="registrationDto.FirstName" class="form-control" />
+            <ValidationMessage For="@(() => registrationDto.FirstName)" />
+            </div>
+
+            <div class="mb-3">
+        <label class="form-label">Отчество *</label>
+       <InputText @bind-Value="registrationDto.MiddleName" class="form-control" />
+ <ValidationMessage For="@(() => registrationDto.MiddleName)" />
+                </div>
+
+     <div class="mb-3">
+              <label class="form-label">Место работы *</label>
+<InputText @bind-Value="registrationDto.WorkPlace" class="form-control" />
+         <ValidationMessage For="@(() => registrationDto.WorkPlace)" />
+  </div>
+
+         <div class="mb-3">
+ <label class="form-label">Ученая степень</label>
+          <InputText @bind-Value="registrationDto.AcademicDegree" class="form-control" placeholder="Например: к.т.н., д.ф.-м.н." />
+       </div>
+
+    <div class="mb-3">
+      <label class="form-label">Ученое звание</label>
+            <InputText @bind-Value="registrationDto.AcademicTitle" class="form-control" placeholder="Например: доцент, профессор" />
+           </div>
+            </div>
+
+         <div class="col-md-6">
+   <h4>Контактная информация</h4>
+                
+                <div class="mb-3">
+          <label class="form-label">Email *</label>
+       <InputText @bind-Value="registrationDto.Email" type="email" class="form-control" />
+           <ValidationMessage For="@(() => registrationDto.Email)" />
+                </div>
+
+          <div class="mb-3">
+     <label class="form-label">Телефон *</label>
+         <InputText @bind-Value="registrationDto.Phone" type="tel" class="form-control" />
+     <ValidationMessage For="@(() => registrationDto.Phone)" />
+        </div>
+
+      <div class="mb-3">
+   <label class="form-label">Роль участника *</label>
+ <InputSelect @bind-Value="registrationDto.Role" class="form-select" @onchange="OnRoleChanged">
+                <option value="">-- Выберите роль --</option>
+             <option value="@ParticipantRole.Listener">Слушатель</option>
+       <option value="@ParticipantRole.Speaker">Докладчик</option>
+      </InputSelect>
+             <ValidationMessage For="@(() => registrationDto.Role)" />
+             </div>
+
+                @if (registrationDto.Role == ParticipantRole.Speaker)
+       {
+          <h4 class="mt-4">Информация о докладе</h4>
+      
+          <div class="mb-3">
+      <label class="form-label">Название доклада *</label>
+         <InputText @bind-Value="registrationDto.Presentation!.Title" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+         <label class="form-label">Аннотация</label>
+          <InputTextArea @bind-Value="registrationDto.Presentation!.Abstract" class="form-control" rows="5" />
+            </div>
+
+             <div class="mb-3">
+<label class="form-label">Содокладчики</label>
+   <button type="button" class="btn btn-sm btn-secondary" @onclick="LoadParticipants">Выбрать содокладчиков</button>
+    
+         @if (showCoSpeakerSelection && availableParticipants.Any())
+   {
+       <div class="mt-2 border p-3">
+        @foreach (var participant in availableParticipants)
+            {
+               <div class="form-check">
+     <input class="form-check-input" type="checkbox" 
+   checked="@IsCoSpeakerSelected(participant.Id)"
+     @onchange="@((e) => ToggleCoSpeaker(participant.Id, (bool)e.Value!))" 
+    id="cospeaker_@participant.Id">
+         <label class="form-check-label" for="cospeaker_@participant.Id">
+            @participant.FullName - @participant.WorkPlace
+       </label>
+           </div>
+  }
+   </div>
+       }
+         
+          @if (registrationDto.Presentation.CoSpeakerIds?.Any() == true)
+    {
+       <div class="mt-2">
+            <small class="text-muted">Выбрано содокладчиков: @registrationDto.Presentation.CoSpeakerIds.Count</small>
+    </div>
+               }
+        </div>
+ }
+            </div>
+        </div>
+
+        <div class="mt-4">
+         <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+   @if (isSubmitting)
+        {
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                }
+    Зарегистрироваться
+            </button>
+   <a href="/conference/participants" class="btn btn-secondary ms-2">Отмена</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+  private ParticipantRegistrationDto registrationDto = new();
+    private List<ParticipantResponseDto> availableParticipants = new();
+    private bool showCoSpeakerSelection = false;
+    private bool isSubmitting = false;
+    private bool isSuccess = false;
+    private int participantId = 0;
+    private string errorMessage = string.Empty;
+
+    protected override void OnInitialized()
+  {
+        registrationDto.Presentation = new PresentationDto
+   {
+         CoSpeakerIds = new List<int>()
+        };
+    }
+
+    private void OnRoleChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<ParticipantRole>(e.Value?.ToString(), out var role))
+        {
+            registrationDto.Role = role;
+         
+  if (role == ParticipantRole.Speaker && registrationDto.Presentation == null)
+            {
+                registrationDto.Presentation = new PresentationDto
+      {
+             CoSpeakerIds = new List<int>()
+  };
+       }
+   else if (role == ParticipantRole.Listener)
+  {
+     registrationDto.Presentation = null;
+      }
+    }
+    }
+
+    private async Task LoadParticipants()
+    {
+        showCoSpeakerSelection = true;
+        availableParticipants = await ConferenceService.GetAllParticipantsAsync();
+    }
+
+    private bool IsCoSpeakerSelected(int participantId)
+    {
+        return registrationDto.Presentation?.CoSpeakerIds?.Contains(participantId) ?? false;
+    }
+
+    private void ToggleCoSpeaker(int participantId, bool isSelected)
+    {
+        if (registrationDto.Presentation?.CoSpeakerIds == null)
+     return;
+
+ if (isSelected && !registrationDto.Presentation.CoSpeakerIds.Contains(participantId))
+  {
+        registrationDto.Presentation.CoSpeakerIds.Add(participantId);
+        }
+        else if (!isSelected && registrationDto.Presentation.CoSpeakerIds.Contains(participantId))
+        {
+   registrationDto.Presentation.CoSpeakerIds.Remove(participantId);
+        }
+ }
+
+    private async Task HandleRegistration()
+    {
+        isSubmitting = true;
+    errorMessage = string.Empty;
+
+        try
+        {
+         var result = await ConferenceService.RegisterParticipantAsync(registrationDto);
+        
+   if (result != null)
+        {
+       isSuccess = true;
+         participantId = result.Id;
+            }
+       else
+            {
+    errorMessage = "Произошла ошибка при регистрации. Возможно, участник с таким email уже зарегистрирован.";
+          }
+  }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+         isSubmitting = false;
+ }
+    }
+}

@@ -1,0 +1,231 @@
+@page "/moderation"
+@rendermode InteractiveServer
+@using RESTful.Domain.DTOs
+@using RESTful.Domain.Entities
+@inject Frontend.Services.ConferenceService ConferenceService
+
+<PageTitle>Модерация докладов</PageTitle>
+
+<h2>Модерация докладов</h2>
+
+<div class="alert alert-warning" role="alert">
+    <strong>? Внимание!</strong> Эта страница доступна только модераторам.
+</div>
+
+<div class="mb-3">
+  <label class="form-label">ID модератора:</label>
+    <input type="number" class="form-control" style="width: 200px;" @bind="moderatorId" />
+    <small class="text-muted">Введите ваш ID для подтверждения модерации</small>
+</div>
+
+@if (statistics != null)
+{
+    <div class="row mb-4">
+<div class="col-md-3">
+     <div class="card bg-info text-white">
+   <div class="card-body">
+<h5 class="card-title">Всего</h5>
+         <h2>@statistics.Total</h2>
+</div>
+    </div>
+ </div>
+        <div class="col-md-3">
+       <div class="card bg-warning text-white">
+      <div class="card-body">
+ <h5 class="card-title">На модерации</h5>
+           <h2>@statistics.Pending</h2>
+        </div>
+  </div>
+   </div>
+    <div class="col-md-3">
+    <div class="card bg-success text-white">
+    <div class="card-body">
+  <h5 class="card-title">Одобрено</h5>
+        <h2>@statistics.Approved</h2>
+     </div>
+         </div>
+     </div>
+        <div class="col-md-3">
+  <div class="card bg-danger text-white">
+   <div class="card-body">
+       <h5 class="card-title">Отклонено</h5>
+     <h2>@statistics.Rejected</h2>
+  </div>
+ </div>
+  </div>
+    </div>
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+    <button class="nav-link @(activeTab == "pending" ? "active" : "")" @onclick='() => SwitchTab("pending")'>
+ На модерации (@pendingPresentations.Count)
+  </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "all" ? "active" : "")" @onclick='() => SwitchTab("all")'>
+    Все доклады (@allPresentations.Count)
+  </button>
+  </li>
+</ul>
+
+@if (isLoading)
+{
+    <div class="text-center">
+     <div class="spinner-border" role="status">
+   <span class="visually-hidden">Загрузка...</span>
+ </div>
+    </div>
+}
+else
+{
+    var displayPresentations = activeTab == "pending" ? pendingPresentations : allPresentations;
+
+ if (!displayPresentations.Any())
+  {
+    <div class="alert alert-info" role="alert">
+ @(activeTab == "pending" ? "Нет докладов на модерации" : "Нет докладов")
+   </div>
+    }
+ else
+    {
+        @foreach (var presentation in displayPresentations)
+{
+            // Инициализация комментария, если его нет
+      if (!moderationComments.ContainsKey(presentation.Id))
+            {
+   moderationComments[presentation.Id] = string.Empty;
+       }
+
+<div class="card mb-3">
+   <div class="card-header">
+  <div class="d-flex justify-content-between align-items-center">
+   <h5 class="mb-0">@presentation.Title</h5>
+          <span class="badge @GetStatusBadgeClass(presentation.Status)">
+   @presentation.StatusText
+    </span>
+ </div>
+   </div>
+   <div class="card-body">
+      @if (!string.IsNullOrEmpty(presentation.Abstract))
+     {
+        <p><strong>Аннотация:</strong> @presentation.Abstract</p>
+   }
+
+     <div class="row">
+  <div class="col-md-6">
+           <p class="mb-1"><strong>Докладчик:</strong> @presentation.MainSpeakerName</p>
+     <p class="mb-1"><strong>Дата создания:</strong> @presentation.CreatedDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+  
+  @if (presentation.CoSpeakers?.Any() == true)
+           {
+   <p class="mb-1"><strong>Содокладчики:</strong> @string.Join(", ", presentation.CoSpeakers.Select(cs => cs.ParticipantName))</p>
+    }
+    </div>
+
+  @if (presentation.Status != PresentationStatus.Pending)
+      {
+     <div class="col-md-6">
+   <p class="mb-1"><strong>Модератор:</strong> @presentation.ModeratorName</p>
+   <p class="mb-1"><strong>Дата модерации:</strong> @presentation.ModerationDate?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+     @if (!string.IsNullOrEmpty(presentation.ModerationComment))
+          {
+         <p class="mb-1"><strong>Комментарий:</strong> @presentation.ModerationComment</p>
+         }
+  </div>
+ }
+ </div>
+
+     @if (presentation.Status == PresentationStatus.Pending)
+ {
+    <hr>
+  <div class="row">
+   <div class="col-md-8">
+     <label class="form-label">Комментарий модератора:</label>
+   <input type="text" class="form-control" 
+      value="@moderationComments[presentation.Id]" 
+          @oninput="@(e => moderationComments[presentation.Id] = e.Value?.ToString() ?? string.Empty)"
+         placeholder="Необязательный комментарий" />
+  </div>
+  <div class="col-md-4 d-flex align-items-end gap-2">
+    <button class="btn btn-success" @onclick="() => Moderate(presentation.Id, PresentationStatus.Approved)" disabled="@(moderatorId <= 0)">
+           ? Одобрить
+    </button>
+         <button class="btn btn-danger" @onclick="() => Moderate(presentation.Id, PresentationStatus.Rejected)" disabled="@(moderatorId <= 0)">
+     ? Отклонить
+     </button>
+      </div>
+   </div>
+  }
+      </div>
+    </div>
+ }
+    }
+}
+
+@code {
+    private List<PresentationResponseDto> pendingPresentations = new();
+ private List<PresentationResponseDto> allPresentations = new();
+    private Frontend.Services.ModerationStatistics? statistics;
+  private Dictionary<int, string> moderationComments = new();
+    private bool isLoading = true;
+    private string activeTab = "pending";
+ private int moderatorId = 0;
+
+  protected override async Task OnInitializedAsync()
+  {
+ await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+   isLoading = true;
+  pendingPresentations = await ConferenceService.GetPendingPresentationsAsync();
+      allPresentations = await ConferenceService.GetAllForModerationAsync();
+        statistics = await ConferenceService.GetModerationStatisticsAsync();
+        
+     // Инициализация комментариев для всех презентаций
+    foreach (var presentation in pendingPresentations)
+    {
+            if (!moderationComments.ContainsKey(presentation.Id))
+    {
+       moderationComments[presentation.Id] = string.Empty;
+       }
+        }
+        
+   isLoading = false;
+  }
+
+  private void SwitchTab(string tab)
+    {
+  activeTab = tab;
+    }
+
+    private string GetStatusBadgeClass(PresentationStatus status)
+{
+ return status switch
+        {
+     PresentationStatus.Pending => "bg-warning",
+    PresentationStatus.Approved => "bg-success",
+     PresentationStatus.Rejected => "bg-danger",
+   _ => "bg-secondary"
+  };
+  }
+
+    private async Task Moderate(int presentationId, PresentationStatus status)
+  {
+ if (moderatorId <= 0)
+  {
+      return;
+        }
+
+      var comment = moderationComments.ContainsKey(presentationId) ? moderationComments[presentationId] : null;
+   
+        var success = await ConferenceService.ModeratePresentationAsync(presentationId, status, comment, moderatorId);
+   
+        if (success)
+  {
+     await LoadData();
+        }
+    }
+}

@@ -1,0 +1,102 @@
+@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>Система регистрации на конференцию</PageTitle>
+
+<div class="text-center mb-5">
+    <h1 class="display-4">Добро пожаловать!</h1>
+    <p class="lead">Система регистрации участников на конференцию</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+      <h3 class="card-title">
+             <span class="bi bi-plus-square-fill text-primary"></span>
+     Регистрация
+     </h3>
+     <p class="card-text">
+         Зарегистрируйтесь на конференцию в качестве слушателя или докладчика.
+                Укажите информацию о себе и при необходимости добавьте информацию о докладе.
+      </p>
+    <a href="/conference/register" class="btn btn-primary">Зарегистрироваться</a>
+     </div>
+        </div>
+ </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+          <div class="card-body">
+       <h3 class="card-title">
+        <span class="bi bi-people-fill text-success"></span>
+         Участники
+</h3>
+     <p class="card-text">
+   Просмотрите список всех зарегистрированных участников конференции.
+          Фильтруйте по ролям и изучайте профили участников.
+        </p>
+      <a href="/conference/participants" class="btn btn-success">Список участников</a>
+         </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+       <div class="card-body">
+          <h3 class="card-title">
+      <span class="bi bi-list-nested text-info"></span>
+       Доклады
+    </h3>
+    <p class="card-text">
+   Ознакомьтесь с докладами, которые будут представлены на конференции.
+     Узнайте о темах и докладчиках.
+          </p>
+       <a href="/conference/presentations" class="btn btn-info">Список докладов</a>
+            </div>
+    </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+    <div class="card h-100 bg-light">
+  <div class="card-body">
+<h3 class="card-title">
+      <span class="bi bi-info-circle text-secondary"></span>
+  О системе
+                </h3>
+                <p class="card-text mb-2">
+                  <strong>Возможности системы:</strong>
+         </p>
+            <ul class="small">
+     <li>Регистрация участников (слушатели и докладчики)</li>
+        <li>Добавление информации о докладах</li>
+        <li>Управление содокладчиками</li>
+ <li>Просмотр профилей участников</li>
+        <li>Фильтрация и поиск участников</li>
+     </ul>
+  </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info" role="alert">
+    <h4 class="alert-heading">
+        <span class="bi bi-lightbulb"></span>
+        Информация для докладчиков
+    </h4>
+ <p>
+        При регистрации в качестве докладчика вы можете указать название и аннотацию доклада,
+        а также добавить содокладчиков из числа уже зарегистрированных участников.
+    </p>
+    <hr>
+    <p class="mb-0">
+      Содокладчики смогут просматривать информацию о докладе в режиме чтения.
+    Основной докладчик имеет полный доступ к управлению докладом.
+    </p>
+</div>
+
+@code {
+    // Главная страница
+}
